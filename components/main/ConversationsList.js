@@ -13,10 +13,9 @@ const ConversationsList = ({ onSelectConversation, conversationId }) => {
   }, [conversationId]);
 
   const fetchConversationIds = async () => {
-    setLoading(true)
-
+    setLoading(true);
     try {
-      const response = await axios.get('http://localhost:3000/api/getAllConversationIDs', {
+      const response = await axios.get('http://localhost:5000/api/getAllConversationIDs', {
         withCredentials: true,
         headers: { Authorization: `Bearer ${Cookies.get('token')}` }
       });
@@ -25,14 +24,14 @@ const ConversationsList = ({ onSelectConversation, conversationId }) => {
     } catch (error) {
       console.error('Error fetching conversation IDs:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
   const handleDeleteConversation = async (id) => {
-    setLoading(true)
+    setLoading(true);
     try {
-      await axios.delete(`http://localhost:3000/api/conversation/${id}`, {
+      await axios.delete(`http://localhost:5000/api/conversation/${id}`, {
         withCredentials: true,
         headers: { Authorization: `Bearer ${Cookies.get('token')}` }
       });
@@ -40,7 +39,7 @@ const ConversationsList = ({ onSelectConversation, conversationId }) => {
     } catch (error) {
       console.error(`Error deleting conversation ${id}:`, error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 

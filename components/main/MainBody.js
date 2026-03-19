@@ -12,25 +12,24 @@ import Logout from './Logout';
 const MainBody = () => {
 
   const [conversationId, setConversationId] = useState(null);
-  const [messages, setMessages] = useState([]); // State to store messages
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false); // Updated state name
+  const [authenticated, setAuthenticated] = useState(false);
   const [logout, setLogout] = useState(false);
 
 
   const getCookieValue = (cookieName) => {
-    const cookieValue = Cookies.get(cookieName);
-    return cookieValue;
+    return Cookies.get(cookieName);
   };
 
   useEffect(() => {
     const checkAuthentication = async () => {
-      const token = getCookieValue('token'); // Replace 'token' with your cookie name
-      console.log(token)
+      const token = getCookieValue('token');
+      console.log(token);
   
       if (token) {
         try {
-          const response = await axios.get('http://localhost:3000/api/check_authentication', {
+          const response = await axios.get('http://localhost:5000/api/check_authentication', {
             withCredentials: true,
             headers: { Authorization: `Bearer ${token}` }
           });
@@ -53,50 +52,45 @@ const MainBody = () => {
 
 
   const handleLogout = async () => {
-      console.log('clicked handlelogout')
-      try {
-        await axios.get('http://localhost:3000/api/logout');
-        // Remove the token from cookies
-        Cookies.remove('token');
-        setLogout(true);
-        // Reload the page to the / page
-      } catch (error) {
-        console.error('Logout error:', error);
-      }
-    };
+    console.log('clicked handlelogout');
+    try {
+      await axios.get('http://localhost:5000/api/logout');
+      Cookies.remove('token');
+      setLogout(true);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-    const handleNewChat = async () => {
-      try {
-        setLoading(true); // Set loading state before making the request
-    
-        const response = await axios.post('http://localhost:3000/api/start_conversation', {}, {
-          withCredentials: true,
-          headers: { Authorization: `Bearer ${Cookies.get('token')}` }
-        });
-    
-        const { data } = response;
-        const fetchingID = data.conversationId;
-    
-        // Update state to trigger re-render
-        setConversationId(fetchingID);
-        setMessages([]); // Clear previous messages
-    
-        setLoading(false); // Reset loading state after successful response
-      } catch (error) {
-        console.error('Error starting new conversation:', error);
-        setLoading(false); // Reset loading state on error
-      }
-    };
+  const handleNewChat = async () => {
+    try {
+      setLoading(true);
+  
+      const response = await axios.post('http://localhost:5000/api/start_conversation', {}, {
+        withCredentials: true,
+        headers: { Authorization: `Bearer ${Cookies.get('token')}` }
+      });
+  
+      const { data } = response;
+      const fetchingID = data.conversationId;
+  
+      setConversationId(fetchingID);
+      setMessages([]);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error starting new conversation:', error);
+      setLoading(false);
+    }
+  };
 
-    
-    const handleSelectConversation = (id) => {
-      setConversationId(id);
-    };
+  const handleSelectConversation = (id) => {
+    setConversationId(id);
+  };
 
   useEffect(() => {
     const fetchLatestConversation = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/latest_conversation', {
+        const response = await axios.get('http://localhost:5000/api/latest_conversation', {
           withCredentials: true,
           headers: { Authorization: `Bearer ${Cookies.get('token')}` }
         });
@@ -112,10 +106,6 @@ const MainBody = () => {
   const handleNewMessage = (newMessage) => {
     setMessages((prevMessages) => [...prevMessages, newMessage]);
   };
-
-
-
-  
 
   return (
     <div>{authenticated ? (<div className="h-screen bg-gray-200 flex overflow-hidden">
@@ -147,7 +137,6 @@ const MainBody = () => {
   <div className="text-2xl text-center font-bold tracking-wide text-gray-800">Please login or sign in first</div>
   <NavigationButtons className="mt-4" /> 
 </div>)}</div>
-    
   );
 };
 
