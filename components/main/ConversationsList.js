@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrash } from '@fortawesome/free-solid-svg-icons';
-import Cookies from 'js-cookie';
-
+import { faTrash, faMessage } from '@fortawesome/free-solid-svg-icons';
+import api from '@/app/api';
 const ConversationsList = ({ onSelectConversation, conversationId }) => {
   const [conversationIds, setConversationIds] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -15,12 +13,9 @@ const ConversationsList = ({ onSelectConversation, conversationId }) => {
   const fetchConversationIds = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/getAllConversationIDs', {
-        withCredentials: true,
-        headers: { Authorization: `Bearer ${Cookies.get('token')}` }
-      });
-      const conversationIds = response.data.map((item) => item.id);
-      setConversationIds(conversationIds);
+      const response = await api.get('/getAllConversationIDs');
+      const ids = response.data.map((item) => item.id);
+      setConversationIds(ids);
     } catch (error) {
       console.error('Error fetching conversation IDs:', error);
     } finally {
@@ -29,40 +24,52 @@ const ConversationsList = ({ onSelectConversation, conversationId }) => {
   };
 
   const handleDeleteConversation = async (id) => {
-    setLoading(true);
     try {
-      await axios.delete(`http://localhost:5000/api/conversation/${id}`, {
-        withCredentials: true,
-        headers: { Authorization: `Bearer ${Cookies.get('token')}` }
-      });
-      setConversationIds(conversationIds.filter((cid) => cid !== id));
+      await api.delete(`/conversation/${id}`);
+      setConversationIds(prev => prev.filter((cid) => cid !== id));
     } catch (error) {
       console.error(`Error deleting conversation ${id}:`, error);
-    } finally {
-      setLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center mt-4">
+        <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (conversationIds.length === 0) {
+    return <p className="text-[#6b6b7b] text-xs text-center mt-4">No conversations yet</p>;
+  }
+
   return (
-    <div className="overflow-auto custom-scrollbar mt-4 ml-1" style={{ height: '388px' }}>
-      <ul>
-        {loading ? (
-          <div className='text-center'>
-            Loading
-          </div>
-        ) : conversationIds.map((id) => (
-          <li key={id} className='mt-2 mr-1 bg-gray-200 border-b-1 border-gray-400 text-black rounded'>
-            <button onClick={() => onSelectConversation(id)}>
-              Conversation {id.substring(0, 5)}
-              <span
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteConversation(id);
-                }}
-                className="ml-2 text-slate-500 hover:text-slate-600"
-              >
-                <FontAwesomeIcon icon={faTrash} className="fill-current w-4 h-4" />
-              </span>
+    <div className="overflow-auto mt-1" style={{ height: '360px' }}>
+      <ul className="space-y-1">
+        {conversationIds.map((id) => (
+          <li key={id}
+            className={`group flex items-center justify-between rounded-lg px-2 py-2 cursor-pointer transition ${
+              id === conversationId
+                ? 'bg-purple-600 text-white'
+                : 'text-[#adadb8] hover:bg-[#ffffff10] hover:text-white'
+            }`}
+            onClick={() => onSelectConversation(id)}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <FontAwesomeIcon icon={faMessage} className="text-xs flex-shrink-0" />
+              <span className="text-xs truncate">Chat {id.substring(0, 8)}...</span>
+            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteConversation(id);
+              }}
+              className={`flex-shrink-0 ml-1 opacity-0 group-hover:opacity-100 transition hover:text-red-400 ${
+                id === conversationId ? 'text-white' : 'text-[#6b6b7b]'
+              }`}
+            >
+              <FontAwesomeIcon icon={faTrash} className="text-xs" />
             </button>
           </li>
         ))}

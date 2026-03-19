@@ -1,14 +1,13 @@
-import React from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 
-const Logout = ({clickingLogout}) => {
-
- 
-
-
+const Logout = ({ clickingLogout }) => {
   return (
-    <div className='m-9'>
-        <button className='bg-slate-500 text-white hover:bg-slate-600  mx-2 rounded p-1' onClick={clickingLogout}>Log out</button>
-    </div>
+    <button onClick={clickingLogout}
+      className="w-full flex items-center gap-2 text-[#adadb8] hover:text-white hover:bg-[#ffffff10] rounded-lg px-3 py-2 text-sm transition">
+      <FontAwesomeIcon icon={faRightFromBracket} />
+      Log out
+    </button>
   );
 };
 

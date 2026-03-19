@@ -1,16 +1,17 @@
-import React from 'react';
 import Link from 'next/link';
 
 const NavigationButtons = () => {
-
-
   return (
-    <div className='m-9'>
+    <div className="flex gap-3 mt-2">
       <Link href="/login">
-        <button className='bg-slate-500 text-white hover:bg-slate-600  mx-2 rounded p-1'>Login</button>
+        <button className="bg-[#18181b] border border-[#3d3d3f] text-white hover:border-purple-500 rounded-lg px-6 py-2 text-sm font-medium transition">
+          Log In
+        </button>
       </Link>
       <Link href="/signup">
-        <button className='bg-slate-500 text-white hover:bg-slate-600 mx-2 rounded p-1'>Signup</button>
+        <button className="bg-purple-600 hover:bg-purple-500 text-white rounded-lg px-6 py-2 text-sm font-medium transition">
+          Sign Up
+        </button>
       </Link>
     </div>
   );
