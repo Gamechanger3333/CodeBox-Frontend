@@ -1,150 +1,197 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '@/app/api';
 import toast from 'react-hot-toast';
 
+const PinIcon = ({ filled }) => (
+  <svg viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 12, height: 12 }}>
+    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+    <circle cx="12" cy="10" r="3"/>
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 12, height: 12 }}>
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+  </svg>
+);
+
 const ConversationsList = ({ conversationId, onSelectConversation, refresh }) => {
   const [conversations, setConversations] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editTitle, setEditTitle] = useState('');
+  const editRef = useRef(null);
 
-  useEffect(() => {
-    fetchConversations();
-  }, [conversationId, refresh]);
+  useEffect(() => { fetchConversations(); }, [refresh]);
 
   const fetchConversations = async () => {
-    setLoading(true);
     try {
       const res = await api.get('/getAllConversationIDs');
       setConversations(res.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    } catch {}
   };
 
-  const handleDelete = async (e, id) => {
+  const deleteConversation = async (e, id) => {
     e.stopPropagation();
     try {
       await api.delete(`/conversation/${id}`);
       setConversations(prev => prev.filter(c => c.id !== id));
-      toast.success('Chat deleted');
-    } catch {
-      toast.error('Failed to delete');
-    }
+      toast.success('Deleted');
+    } catch { toast.error('Failed to delete'); }
   };
 
-  const handlePin = async (e, id) => {
+  const togglePin = async (e, id) => {
     e.stopPropagation();
     try {
       const res = await api.patch(`/conversation/${id}/pin`);
       setConversations(prev => prev.map(c => c.id === id ? { ...c, isPinned: res.data.isPinned } : c));
-    } catch {
-      toast.error('Failed to pin');
-    }
+    } catch {}
   };
 
-  const startEdit = (e, conv) => {
+  const startEdit = (e, c) => {
     e.stopPropagation();
-    setEditingId(conv.id);
-    setEditTitle(conv.title || `Chat ${conv.id.substring(0, 8)}`);
+    setEditingId(c.id);
+    setEditTitle(c.title || '');
+    setTimeout(() => editRef.current?.focus(), 0);
   };
 
-  const saveTitle = async (id) => {
+  const saveEdit = async (id) => {
     if (!editTitle.trim()) { setEditingId(null); return; }
     try {
-      await api.patch(`/conversation/${id}/title`, { title: editTitle });
-      setConversations(prev => prev.map(c => c.id === id ? { ...c, title: editTitle } : c));
-    } catch { toast.error('Failed to rename'); }
+      await api.patch(`/conversation/${id}/title`, { title: editTitle.trim() });
+      setConversations(prev => prev.map(c => c.id === id ? { ...c, title: editTitle.trim() } : c));
+    } catch {}
     setEditingId(null);
   };
 
-  if (loading) return (
-    <div className="flex justify-center mt-6">
-      <div className="w-4 h-4 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)' }} />
-    </div>
-  );
+  const grouped = {
+    pinned: conversations.filter(c => c.isPinned),
+    today: conversations.filter(c => !c.isPinned && isToday(c.createdAt)),
+    older: conversations.filter(c => !c.isPinned && !isToday(c.createdAt)),
+  };
 
-  if (!conversations.length) return (
-    <p className="text-xs text-center mt-6 px-4" style={{ color: 'var(--text-muted)' }}>
-      No conversations yet.<br/>Start chatting to see them here.
-    </p>
-  );
-
-  const pinned = conversations.filter(c => c.isPinned);
-  const unpinned = conversations.filter(c => !c.isPinned);
-
-  const ConvItem = ({ conv }) => {
-    const isActive = conv.id === conversationId;
-    const title = conv.title || `Chat ${conv.id.substring(0, 8)}...`;
-
+  const renderGroup = (label, items) => {
+    if (!items.length) return null;
     return (
-      <li
-        onClick={() => onSelectConversation(conv.id)}
-        className="group relative flex items-center gap-2 rounded-xl px-3 py-2 cursor-pointer transition-all animate-slide-in"
-        style={{
-          background: isActive ? 'var(--accent-dim)' : 'transparent',
-          border: isActive ? '1px solid rgba(124,92,252,0.3)' : '1px solid transparent',
-        }}
-        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
-        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-      >
-        <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 flex-shrink-0 fill-current" style={{ color: isActive ? 'var(--accent)' : 'var(--text-muted)' }}>
-          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/>
-        </svg>
-
-        {editingId === conv.id ? (
-          <input
-            autoFocus
-            value={editTitle}
-            onChange={e => setEditTitle(e.target.value)}
-            onBlur={() => saveTitle(conv.id)}
-            onKeyDown={e => { if (e.key === 'Enter') saveTitle(conv.id); if (e.key === 'Escape') setEditingId(null); }}
-            onClick={e => e.stopPropagation()}
-            className="flex-1 bg-transparent outline-none text-xs"
-            style={{ color: 'var(--text-primary)', fontFamily: 'Syne, sans-serif' }}
+      <div key={label} style={{ marginBottom: 8 }}>
+        <div style={{ padding: '4px 10px 2px', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</div>
+        {items.map(c => (
+          <ConvItem key={c.id} c={c} active={c.id === conversationId}
+            onSelect={() => onSelectConversation(c.id)}
+            onDelete={deleteConversation}
+            onPin={togglePin}
+            editing={editingId === c.id}
+            editTitle={editTitle}
+            setEditTitle={setEditTitle}
+            onStartEdit={startEdit}
+            onSaveEdit={() => saveEdit(c.id)}
+            editRef={editRef}
           />
-        ) : (
-          <span className="flex-1 text-xs truncate" style={{ color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-            {title}
-          </span>
-        )}
-
-        <div className="hidden group-hover:flex items-center gap-0.5 flex-shrink-0">
-          <button onClick={e => handlePin(e, conv.id)} className="p-1 rounded hover:text-white transition-colors"
-            style={{ color: conv.isPinned ? 'var(--accent)' : 'var(--text-muted)' }} title={conv.isPinned ? 'Unpin' : 'Pin'}>
-            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M17 4v7l2 3H5l2-3V4h10zm-5 16a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm7-7l-2-3V4H7v6L5 13h14z"/></svg>
-          </button>
-          <button onClick={e => startEdit(e, conv)} className="p-1 rounded hover:text-white transition-colors" style={{ color: 'var(--text-muted)' }} title="Rename">
-            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
-          </button>
-          <button onClick={e => handleDelete(e, conv.id)} className="p-1 rounded hover:text-red-400 transition-colors" style={{ color: 'var(--text-muted)' }} title="Delete">
-            <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-          </button>
-        </div>
-      </li>
+        ))}
+      </div>
     );
   };
 
   return (
-    <div className="overflow-y-auto flex-1 px-2 space-y-1">
-      {pinned.length > 0 && (
+    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+      {conversations.length === 0 ? (
+        <div style={{ padding: '24px 12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>💬</div>
+          No conversations yet
+        </div>
+      ) : (
         <>
-          <p className="text-xs font-semibold uppercase tracking-widest px-2 pt-2 pb-1" style={{ color: 'var(--text-muted)' }}>Pinned</p>
-          <ul className="space-y-0.5">
-            {pinned.map(conv => <ConvItem key={conv.id} conv={conv} />)}
-          </ul>
-          {unpinned.length > 0 && <p className="text-xs font-semibold uppercase tracking-widest px-2 pt-3 pb-1" style={{ color: 'var(--text-muted)' }}>Recent</p>}
+          {renderGroup('Pinned', grouped.pinned)}
+          {renderGroup('Today', grouped.today)}
+          {renderGroup('Earlier', grouped.older)}
         </>
       )}
-      {!pinned.length && <p className="text-xs font-semibold uppercase tracking-widest px-2 pt-2 pb-1" style={{ color: 'var(--text-muted)' }}>Recent</p>}
-      <ul className="space-y-0.5">
-        {unpinned.map(conv => <ConvItem key={conv.id} conv={conv} />)}
-      </ul>
     </div>
   );
+};
+
+const ConvItem = ({ c, active, onSelect, onDelete, onPin, editing, editTitle, setEditTitle, onStartEdit, onSaveEdit, editRef }) => {
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 0,
+        padding: '0 6px', margin: '1px 4px',
+        borderRadius: 8, cursor: 'pointer',
+        background: active ? 'var(--accent-dim)' : hovered ? 'var(--bg-elevated)' : 'transparent',
+        border: `1px solid ${active ? 'rgba(99,102,241,0.2)' : 'transparent'}`,
+        transition: 'background 0.1s',
+        minHeight: 34,
+      }}>
+      <div style={{ flex: 1, overflow: 'hidden', padding: '6px 4px' }}>
+        {editing ? (
+          <input
+            ref={editRef}
+            value={editTitle}
+            onChange={e => setEditTitle(e.target.value)}
+            onBlur={() => onSaveEdit(c.id)}
+            onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(c.id); if (e.key === 'Escape') { /* cancel */ } }}
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%', background: 'var(--bg-tertiary)', border: '1px solid var(--accent)', borderRadius: 5,
+              padding: '2px 6px', fontSize: 13, color: 'var(--text-primary)', outline: 'none', fontFamily: 'Inter',
+            }}
+          />
+        ) : (
+          <div style={{
+            fontSize: 13, fontWeight: active ? 500 : 400,
+            color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {c.title || 'New conversation'}
+          </div>
+        )}
+      </div>
+
+      {(hovered || active) && !editing && (
+        <div style={{ display: 'flex', gap: 1, flexShrink: 0 }}>
+          <IconBtn onClick={(e) => onPin(e, c.id)} title={c.isPinned ? 'Unpin' : 'Pin'}
+            color={c.isPinned ? 'var(--accent)' : 'var(--text-muted)'}>
+            <PinIcon filled={c.isPinned} />
+          </IconBtn>
+          <IconBtn onClick={(e) => onStartEdit(e, c)} title="Rename" color="var(--text-muted)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 12, height: 12 }}>
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </IconBtn>
+          <IconBtn onClick={(e) => onDelete(e, c.id)} title="Delete" color="var(--text-muted)" hoverColor="#ef4444">
+            <TrashIcon />
+          </IconBtn>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const IconBtn = ({ onClick, title, color, hoverColor, children }) => {
+  const [hov, setHov] = useState(false);
+  return (
+    <button onClick={onClick} title={title}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{
+        width: 22, height: 22, borderRadius: 5, border: 'none', background: 'transparent',
+        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: hov && hoverColor ? hoverColor : color, transition: 'color 0.1s',
+      }}>
+      {children}
+    </button>
+  );
+};
+
+const isToday = (dateStr) => {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
 };
 
 export default ConversationsList;

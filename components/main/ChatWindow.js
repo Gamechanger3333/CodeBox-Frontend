@@ -1,66 +1,110 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import api from '@/app/api';
 import MessageRenderer from './MessageRenderer';
 
 const PROMPTS = [
-  { icon: '🐛', label: 'Debug my code', text: 'Help me debug this code:' },
-  { icon: '⚡', label: 'Optimize performance', text: 'How can I optimize this for better performance?' },
-  { icon: '🏗️', label: 'Design architecture', text: 'Help me design the architecture for:' },
-  { icon: '📝', label: 'Code review', text: 'Please review this code and suggest improvements:' },
-  { icon: '🧪', label: 'Write tests', text: 'Help me write tests for this function:' },
-  { icon: '📚', label: 'Explain concept', text: 'Explain how this works in simple terms:' },
+  { icon: '🐛', label: 'Debug code', text: 'Help me debug this error:\n\n```\n\n```' },
+  { icon: '⚡', label: 'Optimize', text: 'How can I optimize this code for better performance?\n\n```\n\n```' },
+  { icon: '🏗️', label: 'Architecture', text: 'Help me design the architecture for:' },
+  { icon: '📝', label: 'Code review', text: 'Please review this code:\n\n```\n\n```' },
+  { icon: '🧪', label: 'Write tests', text: 'Write unit tests for this function:\n\n```\n\n```' },
+  { icon: '📚', label: 'Explain', text: 'Explain how this works in simple terms:' },
 ];
 
-const TypingDots = () => (
-  <div className="flex items-center gap-1.5 px-4 py-3">
-    {[0, 1, 2].map(i => (
-      <div key={i} className="typing-dot" style={{ animationDelay: `${i * 0.2}s` }} />
-    ))}
-  </div>
-);
-
-const BotIcon = ({ size = 'sm' }) => (
-  <div className={`${size === 'sm' ? 'w-7 h-7' : 'w-10 h-10'} rounded-xl flex items-center justify-center flex-shrink-0`}
-       style={{ background: 'linear-gradient(135deg, #7c5cfc, #a855f7)' }}>
-    <svg viewBox="0 0 24 24" className={`${size === 'sm' ? 'w-4 h-4' : 'w-6 h-6'} fill-white`}>
-      <path d="M8 3a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2H3v2h1a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h2v-2H8v-5a2 2 0 0 0-2-2 2 2 0 0 0 2-2V5h2V3H8zm8 0a2 2 0 0 1 2 2v4a2 2 0 0 0 2 2h1v2h-1a2 2 0 0 0-2 2v4a2 2 0 0 1-2 2h-2v-2h2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5h-2V3h2z"/>
+const BotAvatar = () => (
+  <div style={{
+    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+    background: 'linear-gradient(135deg, #6366f1, #a78bfa)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }}>
+    <svg viewBox="0 0 24 24" fill="white" style={{ width: 16, height: 16 }}>
+      <polyline points="16 18 22 12 16 6" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
+      <polyline points="8 6 2 12 8 18" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round"/>
     </svg>
   </div>
 );
 
+const TypingIndicator = () => (
+  <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }} className="fade-in">
+    <BotAvatar />
+    <div style={{
+      padding: '12px 16px', borderRadius: '18px 18px 18px 4px',
+      background: 'var(--bg-tertiary)', border: '1px solid var(--border)',
+      display: 'flex', gap: 5, alignItems: 'center',
+    }}>
+      <div className="dot-1" /><div className="dot-2" /><div className="dot-3" />
+    </div>
+  </div>
+);
+
 const WelcomeScreen = ({ onPromptClick }) => (
-  <div className="flex flex-col items-center justify-center h-full gap-8 px-4 py-12 animate-fade-in">
-    <div className="text-center">
-      <BotIcon size="lg" />
-      <h2 className="text-2xl font-bold mt-4 mb-2" style={{ color: 'var(--text-primary)' }}>
-        CodeBox AI
-      </h2>
-      <p className="text-sm max-w-xs" style={{ color: 'var(--text-secondary)' }}>
-        Your intelligent coding companion. Ask anything about programming, debugging, architecture, or learning new tech.
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 32, padding: '40px 24px' }} className="fade-in">
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 16,
+        background: 'linear-gradient(135deg, #6366f1, #a78bfa)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        margin: '0 auto 16px',
+        boxShadow: '0 8px 32px rgba(99,102,241,0.3)',
+      }}>
+        <svg viewBox="0 0 24 24" fill="none" style={{ width: 28, height: 28 }}>
+          <polyline points="16 18 22 12 16 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+          <polyline points="8 6 2 12 8 18" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+      </div>
+      <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>How can I help you today?</h2>
+      <p style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 340 }}>
+        Ask about debugging, architecture, optimization, or anything code-related.
       </p>
     </div>
 
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full max-w-lg">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, width: '100%', maxWidth: 520 }}>
       {PROMPTS.map((p, i) => (
-        <button
-          key={i}
-          onClick={() => onPromptClick(p.text)}
-          className="flex flex-col items-start gap-1 p-3 rounded-xl border text-left transition-all hover:scale-[1.02]"
+        <button key={i} onClick={() => onPromptClick(p.text)}
           style={{
-            background: 'var(--bg-secondary)',
-            borderColor: 'var(--border)',
+            padding: '12px 14px', borderRadius: 12, textAlign: 'left',
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            cursor: 'pointer', transition: 'border-color 0.15s, transform 0.1s',
+            display: 'flex', flexDirection: 'column', gap: 6,
           }}
-          onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-          onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-        >
-          <span className="text-lg">{p.icon}</span>
-          <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{p.label}</span>
+          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)'; }}>
+          <span style={{ fontSize: 18 }}>{p.icon}</span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-primary)' }}>{p.label}</span>
         </button>
+      ))}
+    </div>
+
+    <div style={{
+      display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center',
+      fontSize: 11, color: 'var(--text-muted)',
+    }}>
+      {['Python', 'JavaScript', 'TypeScript', 'React', 'Node.js', 'SQL', 'Docker', 'Go'].map(lang => (
+        <span key={lang} style={{ padding: '3px 8px', borderRadius: 5, background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>{lang}</span>
       ))}
     </div>
   </div>
 );
+
+const CopyButton = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button onClick={copy} style={{
+      padding: '3px 8px', borderRadius: 5, fontSize: 11, fontWeight: 500,
+      background: copied ? 'rgba(34,197,94,0.15)' : 'var(--bg-elevated)',
+      border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
+      color: copied ? '#22c55e' : 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.15s',
+    }}>
+      {copied ? '✓ Copied' : 'Copy'}
+    </button>
+  );
+};
 
 const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => {
   const [messages, setMessages] = useState([]);
@@ -71,16 +115,11 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
 
-  useEffect(() => {
-    setActiveConversationId(conversationId);
-  }, [conversationId]);
+  useEffect(() => { setActiveConversationId(conversationId); }, [conversationId]);
 
   useEffect(() => {
-    if (activeConversationId) {
-      fetchMessages(activeConversationId);
-    } else {
-      setMessages([]);
-    }
+    if (activeConversationId) fetchMessages(activeConversationId);
+    else setMessages([]);
   }, [activeConversationId]);
 
   useEffect(() => {
@@ -91,17 +130,9 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
     try {
       setLoading(true);
       const res = await api.get(`/get_conversation/${id}`);
-      const fetched = res.data.conversation.messages.map(m => ({
-        sender: m.sender,
-        content: m.content,
-        id: m.id,
-      }));
-      setMessages(fetched);
-    } catch (err) {
-      console.error('Error fetching messages:', err);
-    } finally {
-      setLoading(false);
-    }
+      setMessages(res.data.conversation.messages.map(m => ({ sender: m.sender, content: m.content, id: m.id })));
+    } catch {}
+    finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
@@ -110,10 +141,10 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
     const messageText = text.trim();
     setSending(true);
     setText('');
+    if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }
 
     try {
       let currentConvId = activeConversationId;
-
       if (!currentConvId) {
         const convRes = await api.post('/start_conversation', {});
         currentConvId = convRes.data.conversationId;
@@ -121,8 +152,7 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
         if (onConversationCreated) onConversationCreated(currentConvId);
       }
 
-      const userMsg = { sender: 'user', content: messageText };
-      setMessages(prev => [...prev, userMsg]);
+      setMessages(prev => [...prev, { sender: 'user', content: messageText }]);
 
       const res = await api.post('/send_message', {
         conversationId: currentConvId,
@@ -130,123 +160,118 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
         sender: 'user',
       });
 
-      const botMsg = { sender: 'bot', content: res.data.response };
-      setMessages(prev => [...prev, botMsg]);
+      setMessages(prev => [...prev, { sender: 'bot', content: res.data.response }]);
       if (onNewMessage) onNewMessage(currentConvId, res.data.title);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, {
-        sender: 'bot',
-        content: '⚠️ Something went wrong. Please check your connection and try again.',
-      }]);
+    } catch {
+      setMessages(prev => [...prev, { sender: 'bot', content: '⚠️ Something went wrong. Please check your connection and try again.' }]);
     } finally {
       setSending(false);
     }
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
   };
 
   const autoResize = (e) => {
     e.target.style.height = 'auto';
-    e.target.style.height = Math.min(e.target.scrollHeight, 160) + 'px';
+    e.target.style.height = Math.min(e.target.scrollHeight, 180) + 'px';
   };
 
   const showWelcome = !activeConversationId && messages.length === 0;
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--bg-primary)' }}>
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-8 md:px-16 lg:px-28 xl:px-40 pt-6 pb-36">
-        {loading ? (
-          <div className="flex items-center justify-center h-full">
-            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)' }} />
-          </div>
-        ) : showWelcome ? (
-          <WelcomeScreen onPromptClick={(t) => setText(t)} />
-        ) : (
-          <div className="space-y-6">
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex gap-3 animate-fade-in ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {msg.sender === 'bot' && <BotIcon />}
-                <div
-                  className={`max-w-[85%] sm:max-w-[75%] px-4 py-3 rounded-2xl ${msg.sender === 'user' ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
-                  style={msg.sender === 'user' ? {
-                    background: 'linear-gradient(135deg, #7c5cfc, #6d46ef)',
-                    color: 'white',
-                  } : {
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                  }}
-                >
-                  <MessageRenderer content={msg.content} sender={msg.sender} />
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)', position: 'relative' }}>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 140 }}>
+        <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 0' }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+              <div style={{ width: 24, height: 24, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            </div>
+          ) : showWelcome ? (
+            <WelcomeScreen onPromptClick={(t) => { setText(t); textareaRef.current?.focus(); }} />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {messages.map((msg, i) => (
+                <div key={i} className="fade-in"
+                  style={{ display: 'flex', gap: 10, flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start' }}>
+                  {msg.sender === 'bot' && <BotAvatar />}
+                  <div style={{
+                    maxWidth: '82%', padding: '12px 16px', fontSize: 14, lineHeight: 1.6,
+                    ...(msg.sender === 'user' ? {
+                      background: 'var(--accent)', color: 'white',
+                      borderRadius: '18px 18px 4px 18px',
+                      fontFamily: 'Inter', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                    } : {
+                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                      color: 'var(--text-primary)', borderRadius: '18px 18px 18px 4px',
+                    })
+                  }}>
+                    {msg.sender === 'bot'
+                      ? <MessageRenderer content={msg.content} />
+                      : msg.content}
+                  </div>
                 </div>
-              </div>
-            ))}
-
-            {sending && (
-              <div className="flex gap-3 animate-fade-in">
-                <BotIcon />
-                <div className="rounded-2xl rounded-bl-sm border" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
-                  <TypingDots />
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-        )}
+              ))}
+              {sending && <TypingIndicator />}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Input Area */}
-      <div className="fixed bottom-0 left-0 right-0 md:left-64 px-4 sm:px-8 pb-4 pt-4"
-           style={{ background: 'linear-gradient(to top, var(--bg-primary) 80%, transparent)' }}>
-        <div className="max-w-3xl mx-auto">
-          <div
-            className="flex items-end gap-3 rounded-2xl px-4 py-3 transition-all"
-            style={{
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border)',
-            }}
-            onFocusCapture={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-            onBlurCapture={e => e.currentTarget.style.borderColor = 'var(--border)'}
-          >
+      {/* Input */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '12px 20px 16px',
+        background: 'linear-gradient(to top, var(--bg-primary) 80%, transparent)',
+      }}>
+        <div style={{ maxWidth: 720, margin: '0 auto' }}>
+          <div style={{
+            display: 'flex', alignItems: 'flex-end', gap: 10,
+            background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+            borderRadius: 16, padding: '10px 12px 10px 16px',
+            transition: 'border-color 0.15s, box-shadow 0.15s',
+          }}
+          onFocusCapture={e => { e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-dim)'; }}
+          onBlurCapture={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}>
             <textarea
-              ref={textareaRef}
-              rows={1}
-              value={text}
+              ref={textareaRef} rows={1} value={text}
               onChange={e => { setText(e.target.value); autoResize(e); }}
               onKeyDown={handleKeyDown}
-              placeholder={sending ? 'CodeBox is thinking...' : 'Ask anything about code...'}
+              placeholder={sending ? 'CodeBox is thinking...' : 'Ask about code, debugging, architecture...'}
               disabled={sending}
-              className="flex-1 bg-transparent resize-none outline-none text-sm leading-relaxed"
               style={{
-                color: 'var(--text-primary)',
-                fontFamily: 'Syne, sans-serif',
-                maxHeight: '160px',
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                fontSize: 14, color: 'var(--text-primary)', resize: 'none',
+                fontFamily: 'Inter', lineHeight: 1.6, maxHeight: 180, overflowY: 'auto',
               }}
             />
-            <button
-              onClick={handleSubmit}
-              disabled={sending || !text.trim()}
-              className="w-9 h-9 flex items-center justify-center rounded-xl transition-all flex-shrink-0"
-              style={{
-                background: (sending || !text.trim()) ? 'var(--border)' : 'linear-gradient(135deg, #7c5cfc, #a855f7)',
-                cursor: (sending || !text.trim()) ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
-              </svg>
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              {text && !sending && (
+                <button onClick={() => { setText(''); if (textareaRef.current) textareaRef.current.style.height = 'auto'; }}
+                  style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--bg-elevated)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                  ✕
+                </button>
+              )}
+              <button onClick={handleSubmit} disabled={sending || !text.trim()}
+                style={{
+                  width: 36, height: 36, borderRadius: 10, border: 'none', cursor: (sending || !text.trim()) ? 'not-allowed' : 'pointer',
+                  background: (sending || !text.trim()) ? 'var(--bg-elevated)' : 'var(--accent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'background 0.15s', flexShrink: 0,
+                }}>
+                {sending
+                  ? <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  : <svg viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" style={{ width: 16, height: 16 }}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                }
+              </button>
+            </div>
           </div>
-          <p className="text-center text-xs mt-2" style={{ color: 'var(--text-muted)' }}>
-            Enter to send · Shift+Enter for new line · CodeBox may make mistakes
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · Powered by Groq / Llama 3.3 70B</span>
+          </div>
         </div>
       </div>
     </div>
