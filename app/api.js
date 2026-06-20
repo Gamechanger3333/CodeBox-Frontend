@@ -1,22 +1,14 @@
 import axios from 'axios';
-import Cookies from 'js-cookie';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api',
-  withCredentials: true,
-});
-
-api.interceptors.request.use((config) => {
-  const token = Cookies.get('token');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
+  withCredentials: true, // sends the httpOnly auth cookie automatically on every request
 });
 
 api.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      Cookies.remove('token');
       window.location.href = '/login';
     }
     return Promise.reject(error);
