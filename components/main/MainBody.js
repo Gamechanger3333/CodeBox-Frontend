@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import ChatWindow from '@/components/main/ChatWindow';
 import ConversationsList from '@/components/main/ConversationsList';
+import ProjectAnalyzerPanel from '@/components/main/ProjectAnalyzerPanel';
 import api from '@/app/api';
 import Link from 'next/link';
 
@@ -35,26 +36,27 @@ const SnippetsIcon = () => (
     <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
   </svg>
 );
+const ProjectIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: 16, height: 16 }}>
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+const LogoutIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: 15, height: 15 }}>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+  </svg>
+);
 // Hamburger — mobile only
 const MenuIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 20, height: 20 }}>
     <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
   </svg>
 );
-// Desktop sidebar toggle — chevron style
+// Sidebar toggle — desktop only (panel icon that flips)
 const SidebarOpenIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18 }}>
-    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="13 8 17 12 13 16"/>
-  </svg>
-);
-const SidebarCloseIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ width: 18, height: 18 }}>
-    <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="17 8 13 12 17 16"/>
-  </svg>
-);
-const LogoutIcon = () => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: 15, height: 15 }}>
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+    <rect x="3" y="3" width="18" height="18" rx="2"/>
+    <line x1="9" y1="3" x2="9" y2="21"/>
   </svg>
 );
 
@@ -296,22 +298,26 @@ const LandingScreen = () => (
   </div>
 );
 
-// ── SIDEBAR WIDTH ──────────────────────────────────────
+// ── Constants ──────────────────────────────────────────
 const SIDEBAR_W = 252;
 
 // ── Main App ───────────────────────────────────────────
 const MainBody = () => {
   const [conversationId, setConversationId] = useState(null);
-  // Desktop: sidebar hidden by default; Mobile: sidebar hidden by default
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activePanel, setActivePanel] = useState('chat');
   const [listRefresh, setListRefresh] = useState(0);
   const isMobile = useIsMobile();
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  // Close sidebar whenever viewport changes (e.g. rotating device)
-  useEffect(() => { setSidebarOpen(false); }, [isMobile]);
+  // Desktop: sidebar hidden by default; Mobile: drawer hidden by default
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // When resizing from mobile → desktop, keep whatever state the user set
+  // When resizing from desktop → mobile, close the sidebar so it doesn't float
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [isMobile]);
 
   const { data: authData, isLoading: authLoading } = useQuery({
     queryKey: ['auth'],
@@ -338,7 +344,7 @@ const MainBody = () => {
       setConversationId(res.data.conversationId);
       setActivePanel('chat');
       setListRefresh(n => n + 1);
-      setSidebarOpen(false);
+      if (isMobile) setSidebarOpen(false);
     },
     onError: () => toast.error('Failed to start chat'),
   });
@@ -350,6 +356,11 @@ const MainBody = () => {
       queryClient.clear();
       router.push('/login');
     } catch { toast.error('Logout failed'); }
+  };
+
+  const selectPanel = (panel) => {
+    setActivePanel(panel);
+    if (isMobile) setSidebarOpen(false);
   };
 
   if (authLoading) {
@@ -365,23 +376,26 @@ const MainBody = () => {
   const userName = authData?.user?.name || 'Developer';
   const userInitial = userName[0]?.toUpperCase();
 
+  // How much space the sidebar takes from the layout flow (0 when hidden on desktop)
+  const sidebarLayoutWidth = isMobile ? 0 : sidebarOpen ? SIDEBAR_W : 0;
+
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)', position: 'relative' }}>
 
-      {/* Overlay — both mobile and desktop when sidebar is open */}
-      {sidebarOpen && (
+      {/* ── Mobile overlay backdrop ── */}
+      {isMobile && sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
           style={{
             position: 'fixed', inset: 0,
-            background: isMobile ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.3)',
+            background: 'rgba(0,0,0,0.7)',
             zIndex: 40,
-            backdropFilter: isMobile ? 'blur(4px)' : 'none',
+            backdropFilter: 'blur(4px)',
           }}
         />
       )}
 
-      {/* ── Sidebar — always fixed/slide-in for both mobile & desktop ── */}
+      {/* ── Sidebar ── */}
       <aside style={{
         width: SIDEBAR_W,
         flexShrink: 0,
@@ -389,28 +403,24 @@ const MainBody = () => {
         flexDirection: 'column',
         background: 'var(--bg-secondary)',
         borderRight: '1px solid var(--border)',
+        // Always fixed so it can slide without affecting layout
         position: 'fixed',
         top: 0,
         left: 0,
         height: '100vh',
-        zIndex: 50,
+        zIndex: isMobile ? 50 : 30,
+        // Slide in/out for both mobile and desktop
         transform: sidebarOpen ? 'translateX(0)' : `translateX(-${SIDEBAR_W}px)`,
         transition: 'transform 0.25s ease',
+        // On desktop when open, cast a shadow instead of pushing content
+        boxShadow: (!isMobile && sidebarOpen) ? '4px 0 24px rgba(0,0,0,0.25)' : 'none',
       }}>
-        {/* Logo + close button */}
-        <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <div style={{ width: 15, color: 'white' }}><CodeIcon /></div>
-            </div>
-            <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>CodeBox</span>
+        {/* Logo row */}
+        <div style={{ padding: '14px 14px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 15, color: 'white' }}><CodeIcon /></div>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            title="Close sidebar"
-            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 4 }}>
-            ✕
-          </button>
+          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>CodeBox</span>
         </div>
 
         {/* New Chat */}
@@ -426,20 +436,21 @@ const MainBody = () => {
           </button>
         </div>
 
-        {/* Nav tabs */}
+        {/* Nav items */}
         <div style={{ padding: '0 8px 8px', display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <NavItem icon={<ChatIcon />} label="Chat" active={activePanel === 'chat'} onClick={() => { setActivePanel('chat'); setSidebarOpen(false); }} />
-          <NavItem icon={<AnalyzerIcon />} label="Code Analyzer" active={activePanel === 'analyzer'} onClick={() => { setActivePanel('analyzer'); setSidebarOpen(false); }} />
-          <NavItem icon={<SnippetsIcon />} label="Snippets" active={activePanel === 'snippets'} onClick={() => { setActivePanel('snippets'); setSidebarOpen(false); }} />
+          <NavItem icon={<ChatIcon />}     label="Chat"             active={activePanel === 'chat'}     onClick={() => selectPanel('chat')} />
+          <NavItem icon={<AnalyzerIcon />} label="Code Analyzer"   active={activePanel === 'analyzer'} onClick={() => selectPanel('analyzer')} />
+          <NavItem icon={<ProjectIcon />}  label="Project Analyzer" active={activePanel === 'project'}  onClick={() => selectPanel('project')} />
+          <NavItem icon={<SnippetsIcon />} label="Snippets"        active={activePanel === 'snippets'} onClick={() => selectPanel('snippets')} />
         </div>
 
         <div style={{ height: 1, background: 'var(--border)', margin: '0 12px 6px' }} />
 
-        {/* Conversations list */}
+        {/* Conversations list (chat panel only) */}
         {activePanel === 'chat' && (
           <ConversationsList
             conversationId={conversationId}
-            onSelectConversation={(id) => { setConversationId(id); setSidebarOpen(false); }}
+            onSelectConversation={(id) => { setConversationId(id); if (isMobile) setSidebarOpen(false); }}
             refresh={listRefresh}
           />
         )}
@@ -459,94 +470,82 @@ const MainBody = () => {
         </div>
       </aside>
 
-      {/* ── Main content — full width always (sidebar overlays it) ── */}
+      {/* ── Main content ── */}
       <main style={{
         flex: 1,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         minWidth: 0,
-        width: '100%',
+        // On desktop, shift right when sidebar is open so content isn't covered
+        marginLeft: isMobile ? 0 : (sidebarOpen ? SIDEBAR_W : 0),
+        transition: 'margin-left 0.25s ease',
       }}>
-        {/* Top bar */}
+
+        {/* ── Top bar ── */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '12px 16px',
+          display: 'flex', alignItems: 'center', gap: 10,
+          padding: '10px 14px',
           borderBottom: '1px solid var(--border)',
           background: 'var(--bg-secondary)',
           flexShrink: 0,
         }}>
-          {/* Mobile: hamburger (inline, mobile-only) */}
-          {isMobile && (
-            <button
-              onClick={() => setSidebarOpen(true)}
-              title="Open menu"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 0,
-                flexShrink: 0,
-              }}>
-              <MenuIcon />
-            </button>
-          )}
 
-          {/* Desktop: sidebar toggle button (not hamburger) */}
-          {!isMobile && (
-            <button
-              onClick={() => setSidebarOpen(prev => !prev)}
-              title={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-              style={{
-                background: sidebarOpen ? 'var(--accent-dim)' : 'none',
-                border: `1px solid ${sidebarOpen ? 'rgba(99,102,241,0.25)' : 'var(--border)'}`,
-                color: sidebarOpen ? 'var(--accent-bright)' : 'var(--text-secondary)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 6,
-                borderRadius: 7,
-                flexShrink: 0,
-                transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (!sidebarOpen) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
-              onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}>
-              {sidebarOpen ? <SidebarCloseIcon /> : <SidebarOpenIcon />}
-            </button>
-          )}
+          {/* 
+            Mobile: hamburger (opens drawer)
+            Desktop: sidebar toggle button (shows/hides sidebar, same button for both open and close)
+          */}
+          <button
+            onClick={() => setSidebarOpen(o => !o)}
+            title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+            style={{
+              width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+              background: sidebarOpen ? 'var(--accent-dim)' : 'none',
+              border: `1px solid ${sidebarOpen ? 'rgba(99,102,241,0.25)' : 'var(--border)'}`,
+              color: sidebarOpen ? 'var(--accent-bright)' : 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { if (!sidebarOpen) { e.currentTarget.style.background = 'var(--bg-elevated)'; e.currentTarget.style.color = 'var(--text-primary)'; } }}
+            onMouseLeave={e => { if (!sidebarOpen) { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--text-secondary)'; } }}
+          >
+            {/* Show hamburger on mobile, panel icon on desktop */}
+            {isMobile ? <MenuIcon /> : <SidebarOpenIcon />}
+          </button>
 
-          {/* Brand */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <div style={{ width: 22, height: 22, borderRadius: 5, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: 12, color: 'white' }}><CodeIcon /></div>
             </div>
             <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>CodeBox</span>
           </div>
 
-          {/* Panel tabs */}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
-            {['chat', 'analyzer', 'snippets'].map(p => (
-              <button key={p} onClick={() => setActivePanel(p)}
+          {/* Tab pills — always visible in top bar */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
+            {[
+              { id: 'chat',     label: 'Chat' },
+              { id: 'analyzer', label: isMobile ? 'AI' : 'Analyzer' },
+              { id: 'project',  label: isMobile ? 'ZIP' : 'Project' },
+              { id: 'snippets', label: isMobile ? '{ }' : 'Snippets' },
+            ].map(({ id, label }) => (
+              <button key={id} onClick={() => setActivePanel(id)}
                 style={{
-                  padding: '5px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500,
+                  padding: isMobile ? '5px 8px' : '5px 12px',
+                  borderRadius: 6, fontSize: 12, fontWeight: 500,
                   cursor: 'pointer', border: 'none',
-                  background: activePanel === p ? 'var(--accent-dim)' : 'transparent',
-                  color: activePanel === p ? 'var(--accent-bright)' : 'var(--text-muted)',
-                  textTransform: 'capitalize',
+                  background: activePanel === id ? 'var(--accent-dim)' : 'transparent',
+                  color: activePanel === id ? 'var(--accent-bright)' : 'var(--text-muted)',
+                  transition: 'all 0.12s',
                 }}>
-                {p === 'analyzer' ? (isMobile ? 'AI' : 'Analyzer') : p.charAt(0).toUpperCase() + p.slice(1)}
+                {label}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Panel content */}
+        {/* ── Panel content ── */}
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {activePanel === 'chat' && (
             <ChatWindow
@@ -556,6 +555,7 @@ const MainBody = () => {
             />
           )}
           {activePanel === 'analyzer' && <div style={{ flex: 1, overflowY: 'auto' }}><CodeAnalyzerPanel /></div>}
+          {activePanel === 'project'  && <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}><ProjectAnalyzerPanel /></div>}
           {activePanel === 'snippets' && <div style={{ flex: 1, overflowY: 'auto' }}><SnippetsPanel /></div>}
         </div>
       </main>
