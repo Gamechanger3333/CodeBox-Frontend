@@ -46,7 +46,7 @@ function StepEmail({ onSuccess }) {
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Forgot your password?</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
-          Enter the email address on your account and we'll send you a 6-digit reset code.
+          Enter the email address on your account and we&apos;ll send you a 6-digit reset code.
         </p>
       </div>
 
@@ -194,7 +194,7 @@ function StepOTP({ email, onSuccess, onBack }) {
       </button>
 
       <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text-muted)' }}>
-        Didn't receive it?{' '}
+        Didn&apos;t receive it?{' '}
         {countdown > 0
           ? <span style={{ color: 'var(--text-muted)' }}>Resend in {countdown}s</span>
           : <button onClick={resend} disabled={resending} style={{ color: 'var(--accent-bright)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
@@ -248,7 +248,7 @@ function StepReset({ resetToken, onSuccess }) {
           </svg>
         </div>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Set a new password</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Choose a strong password you haven't used before.</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Choose a strong password you haven&apos;t used before.</p>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -303,7 +303,7 @@ function StepDone() {
   useEffect(() => {
     const t = setTimeout(() => router.push('/'), 3000);
     return () => clearTimeout(t);
-  }, []);
+  }, [router]);
 
   return (
     <div className="fade-up" style={{ textAlign: 'center' }}>
