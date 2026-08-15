@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/app/api';
 import toast from 'react-hot-toast';
@@ -34,7 +34,14 @@ export default function SignupPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', passwordConfirm: '' });
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    api.get('/check_authentication')
+      .then(() => router.replace('/'))
+      .catch(() => setCheckingAuth(false));
+  }, [router]);
 
   const strength = strengthLevel(form.password);
   const strengthColors = ['#2a2a35', '#ef4444', '#f59e0b', '#22c55e', '#6366f1'];
@@ -58,6 +65,14 @@ export default function SignupPage() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen grid-bg flex items-center justify-center px-6 py-12" style={{ background: 'var(--bg-primary)' }}>

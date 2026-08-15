@@ -218,6 +218,7 @@ const ProjectAnalyzerPanel = () => {
   const [clearing, setClearing] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const reuploadInputRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -266,7 +267,8 @@ const ProjectAnalyzerPanel = () => {
     setAsking(true);
     try {
       const res = await api.post('/project/ask', { message: question });
-      setMessages(prev => [...prev, { role: 'assistant', content: res.data.response }]);
+      const content = res.data.response || res.data.error || 'No response received.';
+      setMessages(prev => [...prev, { role: 'assistant', content }]);
     } catch (err) {
       const msg = err.response?.data?.error || 'Something went wrong. Please try again.';
       setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }]);
@@ -365,21 +367,47 @@ const ProjectAnalyzerPanel = () => {
             <p style={{ fontSize: 11, color: 'var(--text-muted)' }}>Project loaded · Ask anything about your code</p>
           </div>
         </div>
-        <button
-          onClick={handleClear} disabled={clearing}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
-            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-            color: 'var(--text-muted)', cursor: clearing ? 'not-allowed' : 'pointer',
-            transition: 'all 0.12s', flexShrink: 0,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; e.currentTarget.style.color = '#ef4444'; }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-        >
-          {clearing ? <Spinner size={12} /> : <TrashIcon />}
-          Clear project
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <input
+            ref={reuploadInputRef}
+            type="file"
+            accept=".zip"
+            style={{ display: 'none' }}
+            onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0]); e.target.value = ''; }}
+          />
+          <button
+            onClick={() => reuploadInputRef.current?.click()}
+            disabled={stage === 'uploading'}
+            title="Upload an updated version of this project — unchanged files are reused, only edits are re-indexed"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', cursor: stage === 'uploading' ? 'not-allowed' : 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(99,102,241,0.4)'; e.currentTarget.style.color = 'var(--accent)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            {stage === 'uploading' ? <Spinner size={12} /> : <UploadIcon />}
+            Re-upload
+          </button>
+          <button
+            onClick={handleClear} disabled={clearing}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', cursor: clearing ? 'not-allowed' : 'pointer',
+              transition: 'all 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; e.currentTarget.style.color = '#ef4444'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            {clearing ? <Spinner size={12} /> : <TrashIcon />}
+            Clear project
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}

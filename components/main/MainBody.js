@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import ChatWindow from '@/components/main/ChatWindow';
 import ConversationsList from '@/components/main/ConversationsList';
 import ProjectAnalyzerPanel from '@/components/main/ProjectAnalyzerPanel';
+import InterviewPanel from '@/components/main/InterviewPanel';
 import api from '@/app/api';
 import Link from 'next/link';
 
@@ -38,6 +39,12 @@ const SnippetsIcon = () => (
 const ProjectIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: 16, height: 16 }}>
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+const InterviewIcon = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" style={{ width: 16, height: 16 }}>
+    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/>
   </svg>
 );
 const LogoutIcon = () => (
@@ -439,6 +446,7 @@ const MainBody = () => {
           <NavItem icon={<ChatIcon />}     label="Chat"             active={activePanel === 'chat'}     onClick={() => selectPanel('chat')} />
           <NavItem icon={<AnalyzerIcon />} label="Code Analyzer"   active={activePanel === 'analyzer'} onClick={() => selectPanel('analyzer')} />
           <NavItem icon={<ProjectIcon />}  label="Project Analyzer" active={activePanel === 'project'}  onClick={() => selectPanel('project')} />
+          <NavItem icon={<InterviewIcon />} label="Interview Prep"  active={activePanel === 'interview'} onClick={() => selectPanel('interview')} />
           <NavItem icon={<SnippetsIcon />} label="Snippets"        active={activePanel === 'snippets'} onClick={() => selectPanel('snippets')} />
         </div>
 
@@ -523,10 +531,11 @@ const MainBody = () => {
           {/* Tab pills — always visible in top bar */}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
             {[
-              { id: 'chat',     label: 'Chat' },
-              { id: 'analyzer', label: isMobile ? 'AI' : 'Analyzer' },
-              { id: 'project',  label: isMobile ? 'ZIP' : 'Project' },
-              { id: 'snippets', label: isMobile ? '{ }' : 'Snippets' },
+              { id: 'chat',      label: 'Chat' },
+              { id: 'analyzer',  label: isMobile ? 'AI' : 'Analyzer' },
+              { id: 'project',   label: isMobile ? 'ZIP' : 'Project' },
+              { id: 'interview', label: isMobile ? '🎤' : 'Interview' },
+              { id: 'snippets',  label: isMobile ? '{ }' : 'Snippets' },
             ].map(({ id, label }) => (
               <button key={id} onClick={() => setActivePanel(id)}
                 style={{
@@ -554,6 +563,7 @@ const MainBody = () => {
           )}
           {activePanel === 'analyzer' && <div style={{ flex: 1, overflowY: 'auto' }}><CodeAnalyzerPanel /></div>}
           {activePanel === 'project'  && <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}><ProjectAnalyzerPanel /></div>}
+          {activePanel === 'interview' && <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}><InterviewPanel /></div>}
           {activePanel === 'snippets' && <div style={{ flex: 1, overflowY: 'auto' }}><SnippetsPanel /></div>}
         </div>
       </main>

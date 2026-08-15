@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/app/api';
 import toast from 'react-hot-toast';
@@ -20,7 +20,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
+
+  // If the user already has a valid session, don't show the login form —
+  // the middleware only checks cookie presence, this confirms it's actually valid.
+  useEffect(() => {
+    api.get('/check_authentication')
+      .then(() => router.replace('/'))
+      .catch(() => setCheckingAuth(false));
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +45,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-primary)' }}>
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.15)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen grid-bg flex" style={{ background: 'var(--bg-primary)' }}>
