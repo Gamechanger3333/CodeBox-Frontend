@@ -108,7 +108,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10" style={{ color: 'var(--text-muted)', fontSize: 12 }}>
-          Powered by Groq · Llama 3.3 70B
+          Powered by Groq · GPT-OSS 120B
         </div>
       </div>
 

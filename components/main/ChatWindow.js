@@ -270,7 +270,7 @@ const ChatWindow = ({ conversationId, onNewMessage, onConversationCreated }) => 
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', marginTop: 6 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · Powered by Groq / Llama 3.3 70B</span>
+            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Enter to send · Shift+Enter for new line · Powered by Groq / GPT-OSS 120B</span>
           </div>
         </div>
       </div>

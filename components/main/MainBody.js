@@ -275,7 +275,7 @@ const LandingScreen = () => (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 65px)', padding: '48px 24px', textAlign: 'center' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderRadius: 999, background: 'var(--accent-dim)', border: '1px solid rgba(99,102,241,0.3)', marginBottom: 24 }}>
         <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block', boxShadow: '0 0 8px var(--accent)' }} />
-        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent-bright)' }}>Powered by Groq / Llama 3.3 70B</span>
+        <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--accent-bright)' }}>Powered by Groq / GPT-OSS 120B</span>
       </div>
       <h1 style={{ fontSize: 'clamp(28px, 6vw, 52px)', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 16, maxWidth: 680 }}>
         The AI coding assistant<br /><span className="gradient-text">built for developers</span>
