@@ -1,32 +1,23 @@
 import { NextResponse } from 'next/server';
 
-// Routes that require the user to be logged OUT (auth pages)
-const AUTH_ROUTES = ['/login', '/signup', '/forgot-password'];
+// NOTE: Frontend (vercel.app) and backend (onrender.com) are on different
+// domains. The httpOnly auth cookie is set by the backend in response to a
+// cross-origin request, so it is only ever stored against the backend's own
+// origin — this middleware (which runs on the frontend's domain) can never
+// see it via request.cookies. A cookie-based check here would either never
+// fire (auth-route case) or permanently force-redirect logged-in users away
+// from '/' (protected-route case), which is exactly the "login succeeds but
+// dashboard never loads" bug this used to cause.
+//
+// Auth is therefore handled entirely client-side via /check_authentication:
+// see the useEffect in app/login/page.js (redirects away from /login if
+// already authenticated) and the query in components/main/MainBody.js
+// (redirects to /login if not authenticated).
 
-// Routes that require the user to be logged IN
-const PROTECTED_ROUTES = ['/'];
-
-export function middleware(request) {
-  const { pathname } = request.nextUrl;
-  const token = request.cookies.get('token')?.value;
-
-  const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
-  const isProtectedRoute = PROTECTED_ROUTES.includes(pathname);
-
-  // Cookie presence is just a fast first-pass check — it can be expired
-  // or invalid. MainBody's /check_authentication call is the real source
-  // of truth and still runs client-side as a second layer.
-  if (token && isAuthRoute) {
-    return NextResponse.redirect(new URL('/', request.url));
-  }
-
-  if (!token && isProtectedRoute) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
+export function middleware() {
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/', '/login', '/signup', '/forgot-password'],
+  matcher: [],
 };
