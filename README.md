@@ -15,6 +15,15 @@ https://codebox-frontend.vercel.app
 - Online code editor
 - Real-time collaboration
 
+## 🎭 Demo Access
+
+Click **"Try Demo Account"** on the login page for instant access — no signup or OTP needed:
+```
+Email: demo@codebox.com
+Password: Demo@1234
+```
+(Note: data periodically resets — real signup is also available.)
+
 ## ⚙️ Setup Locally
 - Clone the repo
 - Run `npm install`

@@ -11,6 +11,15 @@ const CodeIcon = () => (
   </svg>
 );
 
+// Fixed demo account — no signup/OTP needed. Password is intentionally
+// public here: it's meant to be shared with recruiters/clients, and the
+// backend resets this account's data on every login (see backend
+// utils/demoUser.js), so there's nothing sensitive about exposing it
+// client-side. Override via env if you change DEMO_USER_EMAIL / seed
+// password on the backend.
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL || 'demo@codebox.com';
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD || 'Demo@1234';
+
 const EyeIcon = ({ open }) => open
   ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
   : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
@@ -20,6 +29,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const router = useRouter();
 
@@ -31,19 +41,36 @@ export default function LoginPage() {
       .catch(() => setCheckingAuth(false));
   }, [router]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (loading) return;
-    setLoading(true);
+  // Shared by the real login form and the demo button, so both paths stay
+  // in sync (loading state, success/error toast, redirect).
+  const doLogin = async (loginEmail, loginPassword) => {
     try {
-      await api.post('/login', { email, password });
+      await api.post('/login', { email: loginEmail, password: loginPassword });
       toast.success('Welcome back!');
       router.push('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
-    } finally {
-      setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (loading || demoLoading) return;
+    setLoading(true);
+    await doLogin(email, password);
+    setLoading(false);
+  };
+
+  // Fills the form with the demo credentials AND signs in immediately —
+  // one click, no typing. The real signup/login form above is untouched
+  // and still fully usable.
+  const handleDemoLogin = async () => {
+    if (loading || demoLoading) return;
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setDemoLoading(true);
+    await doLogin(DEMO_EMAIL, DEMO_PASSWORD);
+    setDemoLoading(false);
   };
 
   if (checkingAuth) {
@@ -135,7 +162,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="email" value={email} onChange={e => setEmail(e.target.value)}
-                placeholder="you@example.com" required
+                placeholder="you@example.com" required disabled={demoLoading}
                 className="input-base"
                 style={{ fontFamily: 'Inter' }}
               />
@@ -154,7 +181,7 @@ export default function LoginPage() {
                 <input
                   type={showPw ? 'text' : 'password'} value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" required
+                  placeholder="••••••••" required disabled={demoLoading}
                   className="input-base"
                   style={{ paddingRight: 44, fontFamily: 'JetBrains Mono, monospace' }}
                 />
@@ -165,7 +192,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary" style={{ marginTop: 4 }}>
+            <button type="submit" disabled={loading || demoLoading} className="btn-primary" style={{ marginTop: 4 }}>
               {loading ? (
                 <>
                   <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -174,6 +201,29 @@ export default function LoginPage() {
               ) : 'Sign in →'}
             </button>
           </form>
+
+          <button
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading || demoLoading}
+            className="btn-primary"
+            style={{
+              marginTop: 12, width: '100%',
+              background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)',
+            }}
+            onMouseEnter={e => { if (!loading && !demoLoading) e.currentTarget.style.borderColor = 'var(--border-bright)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
+          >
+            {demoLoading ? (
+              <>
+                <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'var(--accent-bright)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                Loading demo...
+              </>
+            ) : '🎭 Try Demo Account'}
+          </button>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 8 }}>
+            No signup needed — explore CodeBox instantly with sample data
+          </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '20px 0' }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
